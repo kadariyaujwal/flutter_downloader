@@ -708,7 +708,19 @@ class DownloadWorker(context: Context, params: WorkerParameters) :
                 }
             }
             log("Update notification: {notificationId: $primaryId, title: $title, status: $status, progress: $progress}")
-            NotificationManagerCompat.from(context).notify(primaryId, builder.build())
+            // Add permission check for Android 13+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                    NotificationManagerCompat.from(context).notify(primaryId, builder.build())
+                } else {
+                    // Optionally handle the case where permission is not granted,
+                    // e.g., log a warning or inform the user.
+                    logError("Missing POST_NOTIFICATIONS permission to show notification")
+                }
+            } else {
+                // For older versions, no specific permission is needed
+                NotificationManagerCompat.from(context).notify(primaryId, builder.build())
+            }
             lastCallUpdateNotification = System.currentTimeMillis()
         }
     }
